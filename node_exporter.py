@@ -15,12 +15,6 @@ api_version_gauge = Gauge('api_version_info', 'API version of the Casper Node', 
 next_upgrade_gauge = Gauge('next_upgrade_version', 'Next upgrade version of the Casper Node', ['version'])
 reactor_state_gauge = Gauge('reactor_state', 'Current state of the reactor', ['state'])
 
-def version_to_float(version):
-    """Converts a version string like '1.5.6' to a float, e.g., 1.56."""
-    parts = version.split('.')
-    if len(parts) == 3:
-        return float(f"{parts[0]}.{parts[1]}{parts[2]}")
-    return 0.0
 
 def find_config_path():
     """Searches for the casper-node process and extracts the configuration path from its command line."""
