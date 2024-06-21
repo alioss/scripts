@@ -1,26 +1,21 @@
 #!/bin/bash
 
-is_namespace_empty() {
-    local ns=$1
-    local resources=$(kubectl api-resources --namespaced=true --verbs=list -o name)
-    
-    for resource in $resources; do
-        local count=$(kubectl -n "$ns" get "$resource" --no-headers --ignore-not-found | wc -l)
-        if [ "$count" -ne 0 ]; then
-            return 1
-        fi
-    done
-    
-    return 0
-}
-
-namespaces=$(kubectl get ns --no-headers | grep -vE '^(default|kube-system|kube-public)' | awk '{print $1}')
+# Get a list of all namespaces 
+namespaces=$(kubectl get namespaces --no-headers -o custom-columns=:metadata.name | grep -vE '^(default|kube-system|kube-public)$')
 
 for ns in $namespaces; do
-    if is_namespace_empty "$ns"; then
-        echo "Del empty ns: $ns"
-        kubectl delete ns "$ns"
+    # Check if the namespace is empty
+    resource_count=$(kubectl get all --namespace="$ns" --no-headers | wc -l)
+
+    if [ "$resource_count" -eq 0 ]; then
+        read -p "Namespace $ns is unused. Do you want to delete it? (y/n): " answer
+        if [ "$answer" == "y" ]; then
+            echo "Deleting unused namespace: $ns"
+            kubectl delete namespace "$ns"
+        else
+            echo "Skipping deletion of namespace: $ns"
+        fi
     else
-        echo "Namespace $ns is not empty"
+        echo "Namespace $ns is not empty, skipping..."
     fi
 done
