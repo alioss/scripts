@@ -1,0 +1,31 @@
+---
+- name: Get Metadata for EC2 instance
+  amazon.aws.ec2_metadata_facts:
+
+- name: Get EBS volume facts
+  amazon.aws.ec2_vol_info:
+    region: "{{ ansible_ec2_instance_identity_document_region }}"
+    filters:
+      "tag:Name": "{{ instance_name }}"
+      "attachment.instance-id": "{{ ansible_ec2_instance_id }}"
+  register: ec2_volume_facts
+
+- name: Copy ebs_resize.sh to /usr/lib dir
+  copy:
+    src: ebs_resize.sh
+    dest: /usr/lib/ebs_resize.sh
+    owner: root
+    mode: 0754
+
+- name: Create a cronjob that runs ebs_resize.sh
+  cron:
+    cron_file: ebs_resize
+    name: >-
+      Check EBS volume usage. Resize if needed.
+    user: root
+    hour: "*/8"
+    minute: "0"
+    job: >
+      /usr/lib/ebs_resize.sh {{ ansible_ec2_instance_identity_document_region }}
+      {{ ec2_volume_facts.volumes[0].id }} >> /var/log/ebs_resize.log 2>&1
+
